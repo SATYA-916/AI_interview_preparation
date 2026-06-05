@@ -7,6 +7,10 @@ async function authUser(req, res, next) {
 
     const token = req.cookies.token
 
+console.log("Cookies:", req.cookies)
+console.log("Token:", token)
+console.log("Headers Cookie:", req.headers.cookie)
+
     if (!token) {
         return res.status(401).json({
             message: "Token not provided."
