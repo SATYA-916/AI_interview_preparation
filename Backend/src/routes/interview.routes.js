@@ -12,6 +12,14 @@ const interviewRouter = express.Router()
  * @description generate new interview report on the basis of user self description,resume pdf and job description.
  * @access private
  */
+/**
+ * @route POST /api/interview/extract-jd
+ * @description scrape a job posting link and extract the job description text from it
+ * @access private
+ */
+interviewRouter.post("/extract-jd", authMiddleware.authUser, interviewController.extractJdController)
+
+
 interviewRouter.post("/", authMiddleware.authUser, upload.single("resume"), interviewController.generateInterViewReportController)
 
 /**
