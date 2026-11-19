@@ -59,7 +59,37 @@ Job Description: ${jobDescription}
     return JSON.parse(response.text);
 }
 
-async function generatePdfFromHtml(htmlContent) {
+async function extractJobDescriptionFromPage(pageText) {
+    const jdSchema = z.object({
+        jobDescription: z.string().describe("The complete job description found on the page: job title, role summary, responsibilities, required skills, qualifications and experience. Plain text only, no markdown formatting, no commentary. Empty string if the page has no job description.")
+    });
+    
+    const prompt = `
+    You are given the raw text scraped from a web page that contains a job posting.
+    Extract ONLY the job description from it - ignore navigation menus, headers, footers, cookie notices, company marketing sections, "similar jobs" lists and any other page noise.
+    
+    Return the job title, role summary, responsibilities, required skills, qualifications and experience as clean plain text.
+    
+    If the page contains no job description at all, return an empty string.
+    
+    Web page text:
+    ${pageText}
+    `;
+
+        const response = await ai.models.generateContent({
+            model: "gemini-3-flash-preview",
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: zodToJsonSchema(jdSchema)
+            }
+        });
+
+    return JSON.parse(response.text).jobDescription;
+}
+
+
+            async function generatePdfFromHtml(htmlContent) {
     const browser = await puppeteer.launch({
         headless: true,
         executablePath: await chromium.executablePath(),
@@ -141,5 +171,6 @@ The resume should ideally be 1-2 pages.
 
 module.exports = {
     generateInterviewReport,
-    generateResumePdf
+    generateResumePdf,
+    extractJobDescriptionFromPage
 };
