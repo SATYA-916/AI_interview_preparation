@@ -1,5 +1,6 @@
 const pdfParse = require("pdf-parse")
 const { generateInterviewReport, generateResumePdf } = require("../services/ai.service")
+const { scrapeJobDescription } = require("../services/jdScraper.service")
 const interviewReportModel = require("../models/interviewReport.model")
 
 
@@ -10,18 +11,23 @@ const interviewReportModel = require("../models/interviewReport.model")
  */
 async function generateInterViewReportController(req, res) {
 
-    const resumeContent = await (new pdfParse.PDFParse(Uint8Array.from(req.file.buffer))).getText()
+    // Resume file is optional - a self description alone must also work.
+    let resumeText = ""
+    if (req.file) {
+        const resumeContent = await (new pdfParse.PDFParse(Uint8Array.from(req.file.buffer))).getText()
+        resumeText = resumeContent.text
+    }
     const { selfDescription, jobDescription } = req.body
 
     const interViewReportByAi = await generateInterviewReport({
-        resume: resumeContent.text,
+        resume: resumeText,
         selfDescription,
         jobDescription
     })
 
     const interviewReport = await interviewReportModel.create({
         user: req.user.id,
-        resume: resumeContent.text,
+        resume: resumeText,
         selfDescription,
         jobDescription,
         ...interViewReportByAi
@@ -95,4 +101,31 @@ async function generateResumePdfController(req, res) {
     res.send(pdfBuffer)
 }
 
-module.exports = { generateInterViewReportController, getInterviewReportByIdController, getAllInterviewReportsController, generateResumePdfController }
+
+/**
+ * @description Controller to scrape a job-posting link and extract the job description from it.
+ */
+async function extractJdController(req, res) {
+    const { url } = req.body
+
+    if (!url) {
+        return res.status(400).json({
+            message: "A job posting URL is required."
+        })
+    }
+
+    try {
+        const jobDescription = await scrapeJobDescription(url)
+
+        res.status(200).json({
+            message: "Job description extracted successfully.",
+            jobDescription
+        })
+    } catch (err) {
+        res.status(err.status || 400).json({
+            message: err.message || "Could not extract the job description from that link."
+        })
+    }
+}
+
+module.exports = { generateInterViewReportController, getInterviewReportByIdController, getAllInterviewReportsController, generateResumePdfController, extractJdController }
