@@ -4,9 +4,9 @@ AI-powered interview preparation platform built using the MERN stack and Google 
 
 ## Live Demo
 
-**Frontend:** https://ai-interview-preparation-dun.vercel.app/
+**Frontend:** https://ai-interview-preparation-chi.vercel.app/
 
-**Backend API:** https://ai-interview-preparation-9hka.onrender.com/
+**Backend API:** https://ai-interview-preparation-api-u4a0.onrender.com/
 
 ---
 
