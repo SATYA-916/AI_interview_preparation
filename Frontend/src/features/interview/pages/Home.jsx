@@ -15,6 +15,7 @@ const Home = () => {
     const [ resumeName, setResumeName ] = useState("")
     const [ resumeSize, setResumeSize ] = useState("")
     const [ generating, setGenerating ] = useState(false)
+    const [ genError, setGenError ] = useState("")
     const [ uploadPct, setUploadPct ] = useState(null)
     const resumeInputRef = useRef()
 
@@ -37,7 +38,20 @@ const Home = () => {
     }
 
     const handleGenerateReport = async () => {
+        if (!jobDescription.trim()) {
+            setGenError("Please add a job description first - paste the JD text or fetch it from a link.")
+            return
+        }
+        if (profileMode === "resume" && !resumeInputRef.current?.files[ 0 ]) {
+            setGenError("Please choose your resume file, or switch to Self Description.")
+            return
+        }
+        if (profileMode === "self" && !selfDescription.trim()) {
+            setGenError("Please write a short self description, or switch to Upload Resume.")
+            return
+        }
         const resumeFile = profileMode === "resume" ? resumeInputRef.current?.files[ 0 ] : undefined
+        setGenError("")
         setGenerating(true)
         setUploadPct(resumeFile ? 0 : null)
         try {
@@ -47,7 +61,12 @@ const Home = () => {
                 resumeFile,
                 onUploadProgress: (pct) => { setUploadPct(pct) }
             })
+            if (!data?._id) {
+                throw new Error("No report returned")
+            }
             navigate(`/interview/${data._id}`)
+        } catch (err) {
+            setGenError("Generation failed. Your session may have expired - please login again and try. If it still fails, wait a few seconds and retry.")
         } finally {
             setGenerating(false)
             setUploadPct(null)
@@ -183,6 +202,12 @@ const Home = () => {
                         </div>
                     </div>
                 </div>
+
+                {genError && (
+                    <div className='gen-progress'>
+                        <p className='fetch-msg fetch-msg--error'>{genError}</p>
+                    </div>
+                )}
 
                 {/* Generation progress - runs without blocking the rest of the UI */}
                 {generating && (
