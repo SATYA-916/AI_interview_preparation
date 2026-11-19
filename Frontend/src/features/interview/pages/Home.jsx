@@ -5,25 +5,53 @@ import { useNavigate } from 'react-router'
 
 const Home = () => {
 
-    const { loading, generateReport,reports } = useInterview()
+    const { generateReport, reports, jdLoading, getJdFromUrl } = useInterview()
     const [ jobDescription, setJobDescription ] = useState("")
     const [ selfDescription, setSelfDescription ] = useState("")
+    const [ jdMode, setJdMode ] = useState("paste")
+    const [ jdUrl, setJdUrl ] = useState("")
+    const [ jdMsg, setJdMsg ] = useState(null)
+    const [ profileMode, setProfileMode ] = useState("resume")
+    const [ resumeName, setResumeName ] = useState("")
+    const [ resumeSize, setResumeSize ] = useState("")
+    const [ generating, setGenerating ] = useState(false)
+    const [ uploadPct, setUploadPct ] = useState(null)
     const resumeInputRef = useRef()
 
     const navigate = useNavigate()
 
-    const handleGenerateReport = async () => {
-        const resumeFile = resumeInputRef.current.files[ 0 ]
-        const data = await generateReport({ jobDescription, selfDescription, resumeFile })
-        navigate(`/interview/${data._id}`)
+    const handleFetchJd = async () => {
+        if (!jdUrl.trim()) {
+            setJdMsg({ type: "error", text: "Please paste a job posting link first." })
+            return
+        }
+        setJdMsg(null)
+        try {
+            const extracted = await getJdFromUrl(jdUrl.trim())
+            setJobDescription(extracted)
+            setJdMode("paste")
+            setJdMsg({ type: "success", text: "Job description extracted from the link. Review it below and edit anything before generating." })
+        } catch (err) {
+            setJdMsg({ type: "error", text: err?.response?.data?.message || "Could not extract the job description from that link. Please paste the JD text instead." })
+        }
     }
 
-    if (loading) {
-        return (
-            <main className='loading-screen'>
-                <h1>Loading your interview plan...</h1>
-            </main>
-        )
+    const handleGenerateReport = async () => {
+        const resumeFile = profileMode === "resume" ? resumeInputRef.current?.files[ 0 ] : undefined
+        setGenerating(true)
+        setUploadPct(resumeFile ? 0 : null)
+        try {
+            const data = await generateReport({
+                jobDescription,
+                selfDescription: profileMode === "self" ? selfDescription : "",
+                resumeFile,
+                onUploadProgress: (pct) => { setUploadPct(pct) }
+            })
+            navigate(`/interview/${data._id}`)
+        } finally {
+            setGenerating(false)
+            setUploadPct(null)
+        }
     }
 
     return (
@@ -48,13 +76,46 @@ const Home = () => {
                             <h2>Target Job Description</h2>
                             <span className='badge badge--required'>Required</span>
                         </div>
-                        <textarea
-                            onChange={(e) => { setJobDescription(e.target.value) }}
-                            className='panel__textarea'
-                            placeholder={`Paste the full job description here...\ne.g. 'Senior Frontend Engineer at Google requires proficiency in React, TypeScript, and large-scale system design...'`}
-                            maxLength={5000}
-                        />
-                        <div className='char-counter'>0 / 5000 chars</div>
+
+                        {/* JD input mode slider: paste text OR fetch from a link */}
+                        <div className='mode-slider'>
+                            <span className='mode-slider__thumb' style={{ transform: jdMode === "link" ? "translateX(100%)" : "translateX(0)" }} />
+                            <button type='button' className={`mode-slider__btn ${jdMode === "paste" ? "mode-slider__btn--active" : ""}`} onClick={() => setJdMode("paste")}>Paste JD</button>
+                            <button type='button' className={`mode-slider__btn ${jdMode === "link" ? "mode-slider__btn--active" : ""}`} onClick={() => setJdMode("link")}>From Link</button>
+                        </div>
+
+                        {jdMode === "paste" ? (
+                            <>
+                                <textarea
+                                    value={jobDescription}
+                                    onChange={(e) => { setJobDescription(e.target.value) }}
+                                    className='panel__textarea'
+                                    placeholder={`Paste the full job description here...\ne.g. 'Senior Frontend Engineer at Google requires proficiency in React, TypeScript, and large-scale system design...'`}
+                                    maxLength={5000}
+                                />
+                                <div className='char-counter'>{jobDescription.length} / 5000 chars</div>
+                            </>
+                        ) : (
+                            <div className='jd-link-box'>
+                                <div className='jd-link-box__row'>
+                                    <input
+                                        type='url'
+                                        value={jdUrl}
+                                        onChange={(e) => { setJdUrl(e.target.value) }}
+                                        className='jd-link-box__input'
+                                        placeholder='Paste the job posting link (https://...)'
+                                    />
+                                    <button type='button' className='jd-link-box__btn' onClick={handleFetchJd} disabled={jdLoading}>
+                                        {jdLoading ? "Fetching..." : "Fetch JD"}
+                                    </button>
+                                </div>
+                                <p className='jd-link-box__hint'>We open the posting page, extract the job description for you and fill it in the Paste JD box so you can review it. Some sites (like LinkedIn) block automated reading - for those, paste the text instead.</p>
+                            </div>
+                        )}
+
+                        {jdMsg && (
+                            <p className={`fetch-msg fetch-msg--${jdMsg.type}`}>{jdMsg.text}</p>
+                        )}
                     </div>
 
                     {/* Vertical Divider */}
@@ -69,36 +130,49 @@ const Home = () => {
                             <h2>Your Profile</h2>
                         </div>
 
-                        {/* Upload Resume */}
-                        <div className='upload-section'>
-                            <label className='section-label'>
-                                Upload Resume
-                                <span className='badge badge--best'>Best Results</span>
-                            </label>
-                            <label className='dropzone' htmlFor='resume'>
-                                <span className='dropzone__icon'>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 16 12 12 8 16" /><line x1="12" y1="12" x2="12" y2="21" /><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" /></svg>
-                                </span>
-                                <p className='dropzone__title'>Click to upload or drag &amp; drop</p>
-                                <p className='dropzone__subtitle'>PDF or DOCX (Max 5MB)</p>
-                                <input ref={resumeInputRef} hidden type='file' id='resume' name='resume' accept='.pdf,.docx' />
-                            </label>
+                        {/* Profile input mode slider: upload resume OR self description */}
+                        <div className='mode-slider'>
+                            <span className='mode-slider__thumb' style={{ transform: profileMode === "self" ? "translateX(100%)" : "translateX(0)" }} />
+                            <button type='button' className={`mode-slider__btn ${profileMode === "resume" ? "mode-slider__btn--active" : ""}`} onClick={() => setProfileMode("resume")}>Upload Resume</button>
+                            <button type='button' className={`mode-slider__btn ${profileMode === "self" ? "mode-slider__btn--active" : ""}`} onClick={() => setProfileMode("self")}>Self Description</button>
                         </div>
 
-                        {/* OR Divider */}
-                        <div className='or-divider'><span>OR</span></div>
-
-                        {/* Quick Self-Description */}
-                        <div className='self-description'>
-                            <label className='section-label' htmlFor='selfDescription'>Quick Self-Description</label>
-                            <textarea
-                                onChange={(e) => { setSelfDescription(e.target.value) }}
-                                id='selfDescription'
-                                name='selfDescription'
-                                className='panel__textarea panel__textarea--short'
-                                placeholder="Briefly describe your experience, key skills, and years of experience if you don't have a resume handy..."
-                            />
-                        </div>
+                        {profileMode === "resume" ? (
+                            <div className='upload-section'>
+                                <label className='section-label'>
+                                    Upload Resume
+                                    <span className='badge badge--best'>Best Results</span>
+                                </label>
+                                <label className='dropzone' htmlFor='resume'>
+                                    <span className='dropzone__icon'>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 16 12 12 8 16" /><line x1="12" y1="12" x2="12" y2="21" /><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" /></svg>
+                                    </span>
+                                    {resumeName ? (
+                                        <>
+                                            <p className='dropzone__filename'>{resumeName}</p>
+                                            <p className='dropzone__subtitle'>{resumeSize} - ready to upload</p>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <p className='dropzone__title'>Click to upload or drag &amp; drop</p>
+                                            <p className='dropzone__subtitle'>PDF or DOCX (Max 5MB)</p>
+                                        </>
+                                    )}
+                                    <input ref={resumeInputRef} hidden type='file' id='resume' name='resume' accept='.pdf,.docx' onChange={(e) => { const f = e.target.files[ 0 ]; setResumeName(f?.name || ""); setResumeSize(f ? `${(f.size / 1024).toFixed(0)} KB` : "") }} />
+                                </label>
+                            </div>
+                        ) : (
+                            <div className='self-description'>
+                                <label className='section-label' htmlFor='selfDescription'>Quick Self-Description</label>
+                                <textarea
+                                    onChange={(e) => { setSelfDescription(e.target.value) }}
+                                    id='selfDescription'
+                                    name='selfDescription'
+                                    className='panel__textarea panel__textarea--short'
+                                    placeholder="Briefly describe your experience, key skills, and years of experience if you don't have a resume handy..."
+                                />
+                            </div>
+                        )}
 
                         {/* Info Box */}
                         <div className='info-box'>
@@ -110,14 +184,35 @@ const Home = () => {
                     </div>
                 </div>
 
+                {/* Generation progress - runs without blocking the rest of the UI */}
+                {generating && (
+                    <div className='gen-progress'>
+                        <div className='gen-progress__track'>
+                            {uploadPct !== null && uploadPct < 100 ? (
+                                <div className='gen-progress__fill' style={{ width: `${uploadPct}%` }} />
+                            ) : (
+                                <div className='gen-progress__fill gen-progress__fill--indeterminate' />
+                            )}
+                        </div>
+                        <p className='gen-progress__label'>
+                            {uploadPct !== null && uploadPct < 100
+                                ? `Uploading your resume... ${uploadPct}%`
+                                : "AI is generating your interview plan - you can keep using the page..."}
+                        </p>
+                    </div>
+                )}
+
                 {/* Card Footer */}
                 <div className='interview-card__footer'>
                     <span className='footer-info'>AI-Powered Strategy Generation &bull; Approx 30s</span>
                     <button
                         onClick={handleGenerateReport}
+                        disabled={generating}
                         className='generate-btn'>
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" /></svg>
-                        Generate My Interview Strategy
+                        {generating
+                            ? (uploadPct !== null && uploadPct < 100 ? `Uploading... ${uploadPct}%` : "Generating...")
+                            : "Generate My Interview Strategy"}
                     </button>
                 </div>
             </div>
