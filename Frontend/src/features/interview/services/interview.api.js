@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-    baseURL: "https://ai-interview-preparation-api-u4a0.onrender.com",
+    baseURL: "https://ai-interview-preparation-9hka.onrender.com",
     withCredentials: true,
 })
 
@@ -9,16 +9,23 @@ const api = axios.create({
 /**
  * @description Service to generate interview report based on user self description, resume and job description.
  */
-export const generateInterviewReport = async ({ jobDescription, selfDescription, resumeFile }) => {
+export const generateInterviewReport = async ({ jobDescription, selfDescription, resumeFile, onUploadProgress }) => {
 
     const formData = new FormData()
     formData.append("jobDescription", jobDescription)
     formData.append("selfDescription", selfDescription)
-    formData.append("resume", resumeFile)
+    if (resumeFile) {
+        formData.append("resume", resumeFile)
+    }
 
     const response = await api.post("/api/interview/", formData, {
         headers: {
             "Content-Type": "multipart/form-data"
+        },
+        onUploadProgress: (event) => {
+            if (onUploadProgress && event.total) {
+                onUploadProgress(Math.round((event.loaded * 100) / event.total))
+            }
         }
     })
 
@@ -54,6 +61,15 @@ export const generateResumePdf = async ({ interviewReportId }) => {
     const response = await api.post(`/api/interview/resume/pdf/${interviewReportId}`, null, {
         responseType: "blob"
     })
+
+    return response.data
+}
+
+/**
+ * @description Service to extract the job description from a job posting link.
+ */
+export const extractJdFromUrl = async (url) => {
+    const response = await api.post("/api/interview/extract-jd", { url })
 
     return response.data
 }
