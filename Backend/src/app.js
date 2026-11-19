@@ -18,7 +18,10 @@ app.use(cors({
 function healthHandler(req, res) {
     const dbState = mongoose.connection.readyState // 1 = connected
     const dbConnected = dbState === 1
-    res.status(dbConnected ? 200 : 503).json({
+    // Always HTTP 200: this is Render's liveness/health check - returning
+    // 503 when the DB is down would make Render restart-loop the service.
+    // Database state is reported in the body instead.
+    res.status(200).json({
         status: dbConnected ? "ok" : "degraded",
         service: "ai-interview-backend",
         database: dbConnected ? "connected" : "disconnected",
