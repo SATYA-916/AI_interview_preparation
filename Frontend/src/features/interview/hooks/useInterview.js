@@ -1,5 +1,5 @@
-import { getAllInterviewReports, generateInterviewReport, getInterviewReportById, generateResumePdf } from "../services/interview.api"
-import { useContext, useEffect } from "react"
+import { getAllInterviewReports, generateInterviewReport, getInterviewReportById, generateResumePdf, extractJdFromUrl } from "../services/interview.api"
+import { useContext, useEffect, useState } from "react"
 import { InterviewContext } from "../interview.context"
 import { useParams } from "react-router"
 
@@ -15,11 +15,11 @@ export const useInterview = () => {
 
     const { loading, setLoading, report, setReport, reports, setReports } = context
 
-    const generateReport = async ({ jobDescription, selfDescription, resumeFile }) => {
+    const generateReport = async ({ jobDescription, selfDescription, resumeFile, onUploadProgress }) => {
         setLoading(true)
         let response = null
         try {
-            response = await generateInterviewReport({ jobDescription, selfDescription, resumeFile })
+            response = await generateInterviewReport({ jobDescription, selfDescription, resumeFile, onUploadProgress })
             setReport(response.interviewReport)
         } catch (error) {
             console.log(error)
@@ -86,6 +86,18 @@ export const useInterview = () => {
         }
     }, [ interviewId ])
 
-    return { loading, report, reports, generateReport, getReportById, getReports, getResumePdf }
+    const [ jdLoading, setJdLoading ] = useState(false)
+
+    const getJdFromUrl = async (url) => {
+        setJdLoading(true)
+        try {
+            const data = await extractJdFromUrl(url)
+            return data.jobDescription
+        } finally {
+            setJdLoading(false)
+        }
+    }
+
+    return { loading, report, reports, generateReport, getReportById, getReports, getResumePdf, jdLoading, getJdFromUrl }
 
 }
