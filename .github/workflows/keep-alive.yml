@@ -12,7 +12,7 @@ jobs:
       - name: Ping health endpoint
         run: |
           for i in 1 2 3; do
-            if curl -fsS --max-time 90 https://ai-interview-preparation-9hka.onrender.com/health; then
+            if curl -fsS --max-time 90 https://ai-interview-preparation-api-u4a0.onrender.com/health; then
               echo "Backend is awake"
               exit 0
             fi
