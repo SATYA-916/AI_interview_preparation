@@ -513,3 +513,9 @@ $severity-low: #3fb950;
     0% { transform: translateX(-110%); }
     100% { transform: translateX(280%); }
 }
+
+.interview-nav__back {
+    margin-bottom: 1rem;
+    width: 100%;
+    text-align: left;
+}
