@@ -18,6 +18,7 @@ const Home = () => {
     const [ generating, setGenerating ] = useState(false)
     const [ genError, setGenError ] = useState("")
     const [ uploadPct, setUploadPct ] = useState(null)
+    const [ daysAvailable, setDaysAvailable ] = useState(7)
     const resumeInputRef = useRef()
 
     const navigate = useNavigate()
@@ -66,6 +67,7 @@ const Home = () => {
                 jobDescription,
                 selfDescription: profileMode === "self" ? selfDescription : "",
                 resumeFile,
+                daysAvailable,
                 onUploadProgress: (pct) => { setUploadPct(pct) }
             })
             if (!data?._id) {
@@ -207,6 +209,35 @@ const Home = () => {
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" stroke="#1a1f27" strokeWidth="2" /><line x1="12" y1="16" x2="12.01" y2="16" stroke="#1a1f27" strokeWidth="2" /></svg>
                             </span>
                             <p>Either a <strong>Resume</strong> or a <strong>Self Description</strong> is required to generate a personalized plan.</p>
+                        </div>
+
+                        {/* Days until the interview - the roadmap is built for exactly this many days */}
+                        <div className='days-box'>
+                            <label className='section-label' htmlFor='daysAvailable'>Days Until Your Interview</label>
+                            <div className='days-box__row'>
+                                <div className='days-box__chips'>
+                                    {[ 3, 7, 15, 30 ].map((d) => (
+                                        <button
+                                            key={d}
+                                            type='button'
+                                            className={`days-box__chip ${daysAvailable === d ? "days-box__chip--active" : ""}`}
+                                            onClick={() => setDaysAvailable(d)}
+                                        >{d}</button>
+                                    ))}
+                                </div>
+                                <div className='days-box__custom'>
+                                    <input
+                                        id='daysAvailable'
+                                        type='number'
+                                        min='1'
+                                        max='90'
+                                        value={daysAvailable}
+                                        onChange={(e) => { const v = parseInt(e.target.value, 10); setDaysAvailable(Number.isFinite(v) ? Math.min(90, Math.max(1, v)) : 7) }}
+                                    />
+                                    <span>days</span>
+                                </div>
+                            </div>
+                            <p className='days-box__hint'>Your roadmap will be planned for exactly {daysAvailable} {daysAvailable === 1 ? "day" : "days"}.</p>
                         </div>
                     </div>
                 </div>
