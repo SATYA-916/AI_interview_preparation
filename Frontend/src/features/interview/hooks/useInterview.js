@@ -59,11 +59,14 @@ export const useInterview = () => {
         return response.interviewReports
     }
 
+    const [ resumeLoading, setResumeLoading ] = useState(false)
+    const [ resumeError, setResumeError ] = useState("")
+
     const getResumePdf = async (interviewReportId) => {
-        setLoading(true)
-        let response = null
+        setResumeLoading(true)
+        setResumeError("")
         try {
-            response = await generateResumePdf({ interviewReportId })
+            const response = await generateResumePdf({ interviewReportId })
             const url = window.URL.createObjectURL(new Blob([ response ], { type: "application/pdf" }))
             const link = document.createElement("a")
             link.href = url
@@ -73,8 +76,9 @@ export const useInterview = () => {
         }
         catch (error) {
             console.log(error)
+            setResumeError("Resume download failed. Please wait a few seconds and try again.")
         } finally {
-            setLoading(false)
+            setResumeLoading(false)
         }
     }
 
@@ -98,6 +102,6 @@ export const useInterview = () => {
         }
     }
 
-    return { loading, report, reports, generateReport, getReportById, getReports, getResumePdf, jdLoading, getJdFromUrl }
+    return { loading, report, reports, generateReport, getReportById, getReports, getResumePdf, resumeLoading, resumeError, jdLoading, getJdFromUrl }
 
 }
