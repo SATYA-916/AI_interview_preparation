@@ -19,10 +19,14 @@ async function generateInterViewReportController(req, res) {
     }
     const { selfDescription, jobDescription } = req.body
 
+    const daysRaw = parseInt(req.body.daysAvailable, 10)
+    const daysAvailable = Number.isFinite(daysRaw) ? Math.min(90, Math.max(1, daysRaw)) : 7
+
     const interViewReportByAi = await generateInterviewReport({
         resume: resumeText,
         selfDescription,
-        jobDescription
+        jobDescription,
+        daysAvailable
     })
 
     const interviewReport = await interviewReportModel.create({
