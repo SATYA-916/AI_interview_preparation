@@ -477,3 +477,39 @@ $severity-low: #3fb950;
         border-color: rgba($severity-low, 0.25);
     }
 }
+// ── Resume download progress (page stays usable while the PDF builds) ───────
+.resume-progress {
+    margin-top: 0.75rem;
+
+    &__track {
+        height: 8px;
+        background-color: $bg-input;
+        border: 1px solid $border-color;
+        border-radius: 999px;
+        overflow: hidden;
+    }
+
+    &__fill {
+        height: 100%;
+        width: 40%;
+        background-color: $accent;
+        border-radius: 999px;
+        animation: resume-slide 1.2s ease-in-out infinite;
+    }
+
+    &__text {
+        margin-top: 0.5rem;
+        font-size: 0.8rem;
+        color: $text-muted;
+        line-height: 1.4;
+
+        &--error {
+            color: $severity-high;
+        }
+    }
+}
+
+@keyframes resume-slide {
+    0% { transform: translateX(-110%); }
+    100% { transform: translateX(280%); }
+}
