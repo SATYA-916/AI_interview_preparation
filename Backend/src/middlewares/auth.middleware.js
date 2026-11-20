@@ -5,11 +5,11 @@ const tokenBlacklistModel = require("../models/blacklist.model")
 
 async function authUser(req, res, next) {
 
-    const token = req.cookies.token
-
-console.log("Cookies:", req.cookies)
-console.log("Token:", token)
-console.log("Headers Cookie:", req.headers.cookie)
+    // Accept the JWT from the Authorization header (used by the web app,
+    // where cross-site cookies may be blocked by the browser) or the cookie.
+    const authHeader = req.headers.authorization
+    const bearerToken = authHeader && authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null
+    const token = bearerToken || req.cookies.token
 
     if (!token) {
         return res.status(401).json({
