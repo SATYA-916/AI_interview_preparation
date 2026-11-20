@@ -129,6 +129,7 @@ const Interview = () => {
                             </button>
                         ))}
                     </div>
+                    <div className='interview-nav__bottom'>
                     <button
                         onClick={() => { getResumePdf(interviewId) }}
                         disabled={resumeLoading}
@@ -156,6 +157,7 @@ const Interview = () => {
                         </span>
                         Logout
                     </button>
+                    </div>
                 </nav>
 
                 <div className='interview-divider' />
