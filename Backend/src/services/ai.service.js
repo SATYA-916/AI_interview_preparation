@@ -35,8 +35,14 @@ const interviewReportSchema = z.object({
 async function generateInterviewReport({
     resume,
     selfDescription,
-    jobDescription
+    jobDescription,
+    daysAvailable = 7
 }) {
+    const pacing = daysAvailable <= 3
+        ? "This is a CRASH plan: focus only on the highest-probability questions, the most severe skill gaps and revision. No new-topic learning."
+        : daysAvailable <= 14
+            ? "Balance learning the missing skills with question practice and revision."
+            : "Include learning new concepts in depth, hands-on practice, and keep the last 2 days for revision and mock practice."
     const prompt = `
 Generate an interview report for a candidate with the following details:
 
@@ -45,6 +51,10 @@ Resume: ${resume}
 Self Description: ${selfDescription}
 
 Job Description: ${jobDescription}
+
+The candidate has exactly ${daysAvailable} days until the interview.
+Create the preparationPlan with exactly ${daysAvailable} entries, with day numbered sequentially from 1 to ${daysAvailable}.
+Pacing guidance: ${pacing}
 `;
 
     const response = await ai.models.generateContent({
@@ -63,33 +73,32 @@ async function extractJobDescriptionFromPage(pageText) {
     const jdSchema = z.object({
         jobDescription: z.string().describe("The complete job description found on the page: job title, role summary, responsibilities, required skills, qualifications and experience. Plain text only, no markdown formatting, no commentary. Empty string if the page has no job description.")
     });
-    
-    const prompt = `
-    You are given the raw text scraped from a web page that contains a job posting.
-    Extract ONLY the job description from it - ignore navigation menus, headers, footers, cookie notices, company marketing sections, "similar jobs" lists and any other page noise.
-    
-    Return the job title, role summary, responsibilities, required skills, qualifications and experience as clean plain text.
-    
-    If the page contains no job description at all, return an empty string.
-    
-    Web page text:
-    ${pageText}
-    `;
 
-        const response = await ai.models.generateContent({
-            model: "gemini-3-flash-preview",
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: zodToJsonSchema(jdSchema)
-            }
-        });
+    const prompt = `
+You are given the raw text scraped from a web page that contains a job posting.
+Extract ONLY the job description from it - ignore navigation menus, headers, footers, cookie notices, company marketing sections, "similar jobs" lists and any other page noise.
+
+Return the job title, role summary, responsibilities, required skills, qualifications and experience as clean plain text.
+
+If the page contains no job description at all, return an empty string.
+
+Web page text:
+${pageText}
+`;
+
+    const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: zodToJsonSchema(jdSchema)
+        }
+    });
 
     return JSON.parse(response.text).jobDescription;
 }
 
-
-            async function generatePdfFromHtml(htmlContent) {
+async function generatePdfFromHtml(htmlContent) {
     const browser = await puppeteer.launch({
         headless: true,
         executablePath: await chromium.executablePath(),
