@@ -525,3 +525,8 @@ $severity-low: #3fb950;
     width: 100%;
     text-align: left;
 }
+
+.interview-nav__bottom {
+    display: flex;
+    flex-direction: column;
+}
